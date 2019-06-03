@@ -15,16 +15,21 @@
                 <Label DockPanel.Dock="Left" 
                        Content="Iterations"
                        Padding="2,0"/>
-                <CheckBox x:Name="UseCachesCheckbox" 
-                          Content="Use Caches" 
-                          DockPanel.Dock="Right"
-                          VerticalAlignment="Center"
-                          Margin="5,0"/>
                 <TextBox x:Name="IterationsTextBox"
+                         MinWidth="50"
                          Text="1" />
                 
             </DockPanel>
-            
+            <WrapPanel DockPanel.Dock="Right"
+                           VerticalAlignment="Center">
+                <CheckBox x:Name="CacheTypesResolutionsCheckbox" 
+                          Content="Cache types resol." 
+                          VerticalAlignment="Center"/>
+                <CheckBox x:Name="CachePropertiesCheckbox" 
+                          Content="Cache properties" 
+                          VerticalAlignment="Center"
+                          Margin="5,0"/>
+            </WrapPanel>
             <Button x:Name="CalculateButton" Content="_Execute" IsDefault="True" Click="CalculateButton_Click" />
             <Button x:Name="CancelButton" 
                     Content="_Cancel" 

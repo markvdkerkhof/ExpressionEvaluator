@@ -441,6 +441,13 @@ namespace CodingSeb.ExpressionEvaluator
         public static IDictionary<string, Type> TypesResolutionCaching { get; set; } = new Dictionary<string, Type>();
 
         /// <summary>
+        /// if set to <c>true</c> use a cache for the property to execute access faster the next time.
+        /// if set to <c>false</c> the cache of properties access is not use for this instance of ExpressionEvaluator.
+        /// Default : false
+        /// </summary>
+        public bool CacheProperties { get; set; }
+
+        /// <summary>
         /// Clear all ExpressionEvaluator caches
         /// </summary>
         public static void ClearAllCaches()
@@ -1935,33 +1942,41 @@ namespace CodingSeb.ExpressionEvaluator
                                 else
                                 {
                                     BindingFlags flag = DetermineInstanceOrStatic(ref objType, ref obj, ref valueTypeNestingTrace);
+                                    bool isStatic = (flag & BindingFlags.Static) != 0;
+                                    bool isInstance = (flag & BindingFlags.Instance) != 0;
 
-                                    if (!OptionStaticProperiesGetActive && (flag & BindingFlags.Static) != 0)
-                                        throw new ExpressionEvaluatorSyntaxErrorException($"[{objType}] object has no public Property or Field named \"{varFuncName}\".");
-                                    if (!OptionInstanceProperiesGetActive && (flag & BindingFlags.Instance) != 0)
+                                    if (!OptionStaticProperiesGetActive && isStatic)
+                                        throw new ExpressionEvaluatorSyntaxErrorException($"[{objType}] object has no static public Property or Field named \"{varFuncName}\".");
+                                    if (!OptionInstanceProperiesGetActive && isInstance)
                                         throw new ExpressionEvaluatorSyntaxErrorException($"[{objType}] object has no public Property or Field named \"{varFuncName}\".");
 
                                     bool isDynamic = (flag & BindingFlags.Instance) != 0 && obj is IDynamicMetaObjectProvider && obj is IDictionary<string, object>;
                                     IDictionary<string, object> dictionaryObject = obj as IDictionary<string, object>;
-
-                                    MemberInfo member = isDynamic ? null : objType?.GetProperty(varFuncName, flag);
+                                    MemberInfo member = null;
                                     dynamic varValue = null;
                                     bool assign = true;
-
-                                    if (member == null && !isDynamic)
-                                        member = objType.GetField(varFuncName, flag);
-
                                     bool pushVarValue = true;
+                                    bool executeOnTheFlyEvent = true;
 
                                     if (isDynamic)
                                     {
                                         if (!varFuncMatch.Groups["assignationOperator"].Success || varFuncMatch.Groups["assignmentPrefix"].Success)
                                             varValue = dictionaryObject.ContainsKey(varFuncName) ? dictionaryObject[varFuncName] : null;
                                         else
-                                            pushVarValue = false;
+                                            executeOnTheFlyEvent = pushVarValue = false;
+                                    }
+                                    else if (CacheProperties)
+                                    {
+
+                                    }
+                                    else
+                                    {
+                                        member = objType?.GetProperty(varFuncName, flag) ?? (MemberInfo)objType.GetField(varFuncName, flag);
+
+                                        executeOnTheFlyEvent = member == null;
                                     }
 
-                                    if (member == null && pushVarValue)
+                                    if (executeOnTheFlyEvent)
                                     {
                                         VariableEvaluationEventArg variableEvaluationEventArg = new VariableEvaluationEventArg(varFuncName, this, obj ?? keepObj, genericsTypes, GetConcreteTypes);
 
