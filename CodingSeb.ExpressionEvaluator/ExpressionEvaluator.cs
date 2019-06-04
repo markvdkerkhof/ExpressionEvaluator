@@ -14,6 +14,7 @@ using System.ComponentModel;
 using System.Dynamic;
 using System.Globalization;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -446,6 +447,11 @@ namespace CodingSeb.ExpressionEvaluator
         /// Default : false
         /// </summary>
         public bool CacheProperties { get; set; }
+
+        //IDictionary<string, Func<object, object>> InstancePropertiesDelegatesCaching { get; set; } = new Dictionary<string, Func<object, object>>();
+        Hashtable InstancePropertiesDelegatesCaching { get; set; } = new Hashtable();
+
+        IDictionary<string, Func<object>> StaticPropertiesDelegatesCaching { get; set; } = new Dictionary<string, Func<object>>();
 
         /// <summary>
         /// Clear all ExpressionEvaluator caches
@@ -1957,17 +1963,68 @@ namespace CodingSeb.ExpressionEvaluator
                                     bool assign = true;
                                     bool pushVarValue = true;
                                     bool executeOnTheFlyEvent = true;
+                                    bool isEvaluateWithoutMember = false;
 
                                     if (isDynamic)
                                     {
                                         if (!varFuncMatch.Groups["assignationOperator"].Success || varFuncMatch.Groups["assignmentPrefix"].Success)
-                                            varValue = dictionaryObject.ContainsKey(varFuncName) ? dictionaryObject[varFuncName] : null;
+                                        {
+                                            if (dictionaryObject.ContainsKey(varFuncName))
+                                            {
+                                                varValue = dictionaryObject[varFuncName];
+                                                isEvaluateWithoutMember = true;
+                                            }
+                                        }
                                         else
+                                        {
                                             executeOnTheFlyEvent = pushVarValue = false;
+                                        }
                                     }
                                     else if (CacheProperties)
                                     {
+                                        string cacheKey = objType.FullName + "|" + varFuncName;
 
+                                        if (isInstance)
+                                        {
+                                            if (!InstancePropertiesDelegatesCaching.ContainsKey(cacheKey))
+                                            {
+                                                PropertyInfo property = objType.GetProperty(varFuncName, flag);
+
+                                                ParameterExpression instance = Expression.Parameter(typeof(object), "instance");
+
+                                                UnaryExpression instanceCast =
+                                                    !property.DeclaringType.IsValueType ?
+                                                        Expression.TypeAs(instance, property.DeclaringType) :
+                                                        Expression.Convert(instance, property.DeclaringType);
+
+                                                InstancePropertiesDelegatesCaching[cacheKey] =
+                                                    Expression.Lambda<Func<object, object>>(
+                                                        Expression.TypeAs(
+                                                            Expression.Call(instanceCast, property.GetGetMethod()),
+                                                            typeof(object)),
+                                                        instance)
+                                                    .Compile();
+                                            }
+
+                                            varValue = ((Func<object,object>)InstancePropertiesDelegatesCaching[cacheKey])(obj);
+                                        }
+                                        else
+                                        {
+                                            if (!StaticPropertiesDelegatesCaching.ContainsKey(cacheKey))
+                                            {
+                                                PropertyInfo property = objType.GetProperty(varFuncName, flag);
+
+                                                StaticPropertiesDelegatesCaching[cacheKey] = Expression.Lambda<Func<object>>(
+                                                        Expression.TypeAs(
+                                                            Expression.Call(property.GetGetMethod()),
+                                                            typeof(object)))
+                                                    .Compile();
+                                            }
+
+                                            varValue = StaticPropertiesDelegatesCaching[cacheKey]();
+                                        }
+
+                                        isEvaluateWithoutMember = true;
                                     }
                                     else
                                     {
@@ -1985,10 +2042,11 @@ namespace CodingSeb.ExpressionEvaluator
                                         if (variableEvaluationEventArg.HasValue)
                                         {
                                             varValue = variableEvaluationEventArg.Value;
+                                            isEvaluateWithoutMember = true;
                                         }
                                     }
 
-                                    if (varValue == null && pushVarValue)
+                                    if (!isEvaluateWithoutMember && pushVarValue)
                                     {
                                         varValue = ((dynamic)member).GetValue(obj);
 

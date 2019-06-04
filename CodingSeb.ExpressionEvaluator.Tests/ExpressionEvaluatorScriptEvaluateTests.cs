@@ -1199,7 +1199,7 @@ namespace CodingSeb.ExpressionEvaluator.Tests
                     .SetCategory("Anonymous type init as ExpandoObject")
                     .SetCategory("Init of ExpandoObject")
                     .SetCategory("conflict variable assignation vs on the fly in object with same name")
-                    .Returns("{\"Hello\":3,\"No\":\"Yes\"}");
+                    .Returns("{\"Hello\":4,\"No\":\"Yes\"}");
 
                 #endregion
 
