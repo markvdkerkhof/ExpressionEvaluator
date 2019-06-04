@@ -43,6 +43,7 @@ namespace TryWindow
             if (CachePropertiesCheckbox.IsChecked == true)
                 evaluator.CacheProperties = true;
 
+            evaluator.Namespaces.Add("TryWindow");
             evaluator.Namespaces.Add("System.Windows");
             evaluator.Namespaces.Add("System.Diagnostics");
 

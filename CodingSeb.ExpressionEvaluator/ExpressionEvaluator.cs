@@ -459,6 +459,8 @@ namespace CodingSeb.ExpressionEvaluator
         public static void ClearAllCaches()
         {
             TypesResolutionCaching.Clear();
+            InstancePropertiesDelegatesCaching.Clear();
+            StaticPropertiesDelegatesCaching.Clear();
         }
 
         #endregion
