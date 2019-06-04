@@ -449,9 +449,9 @@ namespace CodingSeb.ExpressionEvaluator
         public bool CacheProperties { get; set; }
 
         //IDictionary<string, Func<object, object>> InstancePropertiesDelegatesCaching { get; set; } = new Dictionary<string, Func<object, object>>();
-        Hashtable InstancePropertiesDelegatesCaching { get; set; } = new Hashtable();
+        public static IDictionary<string, Func<object,object>> InstancePropertiesDelegatesCaching { get; set; } = new Dictionary<string, Func<object, object>>();
 
-        IDictionary<string, Func<object>> StaticPropertiesDelegatesCaching { get; set; } = new Dictionary<string, Func<object>>();
+        public static IDictionary<string, Func<object>> StaticPropertiesDelegatesCaching { get; set; } = new Dictionary<string, Func<object>>();
 
         /// <summary>
         /// Clear all ExpressionEvaluator caches
@@ -2006,7 +2006,7 @@ namespace CodingSeb.ExpressionEvaluator
                                                     .Compile();
                                             }
 
-                                            varValue = ((Func<object,object>)InstancePropertiesDelegatesCaching[cacheKey])(obj);
+                                            varValue = (InstancePropertiesDelegatesCaching[cacheKey])(obj);
                                         }
                                         else
                                         {
